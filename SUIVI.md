@@ -21,6 +21,7 @@ _MAJ 2026-11-01_ — ✅ Alerte multi-sources fonctionnelle + écran lisible en 
 - [x] Bouton « Vérifier » : chargement immédiat (roue + barre orange + « environ 1 min »)
 - [x] Recherche + filtres épinglés en haut (`DealFilter`) : prix min/max, sources, tri — 5 tests (filtre « réduction min » retiré : doublon avec le seuil des alertes)
 - [x] Dépôt GitHub **public** : https://github.com/Floran-grmxx/VraisBonsPlans (branche main) + README avec capture (`docs/screenshots/`)
+- [x] Release v1.0 signée publiée sur GitHub (clé : `~/.android/keystores/vraisbonsplans-release.jks`, mots de passe dans `keystore.properties` ignoré par Git — à sauvegarder)
 - [x] Maquette multi-sources (`../idealo_patch/prototype/deal_alert.html`)
 
 ## ⏳ Reste à faire
@@ -54,4 +55,6 @@ _MAJ 2026-11-01_ — ✅ Alerte multi-sources fonctionnelle + écran lisible en 
 - **Texte noir sur fond sombre** : un `LazyColumn` hors `Surface` garde la couleur de contenu par défaut (noir) → envelopper l'écran dans `Surface(color = background)`.
 - Recherche : ne pas réutiliser `ProductNameMatcher.tokens` (il supprime les mots d'1 caractère → « ryzen 5 » ne trouvait rien) ; `DealFilter` a son propre découpage.
 - Kotlin écrit via script Python : doubler les antislashs dans le .py (`\\\\p{M}`) pour obtenir `"\\p{M}"` en Kotlin (« Unsupported escape sequence » sinon).
+- Keystore PKCS12 : le mot de passe de la clé doit être identique à celui du keystore.
+- La release (clé release) ne s'installe pas par-dessus la version debug : désinstaller la debug d'abord.
 - Copier `settings.gradle.kts` depuis AlcoLimit plutôt que via heredoc bash (les `\\` du regex sont mangés).
