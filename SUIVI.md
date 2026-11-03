@@ -20,7 +20,7 @@ _MAJ 2026-11-01_ — ✅ Alerte multi-sources fonctionnelle + écran lisible en 
 - [x] Texte noir illisible en thème sombre corrigé (écran dans une `Surface`), couleurs sombres sans violet
 - [x] Bouton « Vérifier » : chargement immédiat (roue + barre orange + « environ 1 min »)
 - [x] Recherche + filtres épinglés en haut (`DealFilter`) : prix min/max, sources, tri — 5 tests (filtre « réduction min » retiré : doublon avec le seuil des alertes)
-- [x] Dépôt GitHub privé : https://github.com/Floran-grmxx/VraisBonsPlans (branche main)
+- [x] Dépôt GitHub **public** : https://github.com/Floran-grmxx/VraisBonsPlans (branche main) + README avec capture (`docs/screenshots/`)
 - [x] Maquette multi-sources (`../idealo_patch/prototype/deal_alert.html`)
 
 ## ⏳ Reste à faire
