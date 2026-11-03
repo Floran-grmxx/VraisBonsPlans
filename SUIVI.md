@@ -1,7 +1,7 @@
 # SUIVI — Vrais bons plans (app compagnon idealo)
 
 ## 🧭 Ligne directrice
-_MAJ 2026-11-03_ — ✅ idealo lu via son API JSON : 10 catégories au choix (⚙) et 50 / 100 / 200 produits analysés ; scan vérifié sur le Redmi (mode, beauté, jouets… confirmés par Ledenicheur). Prochaine priorité : retour de Floran, release 1.1, puis « Prix de revente ».
+_MAJ 2026-11-04_ — ✅ v1.1 publiée (GitHub + installée sur le Redmi) : écran épuré, barre de progression, catégories idealo, 50/100/200 produits, crash au clic corrigé. Prochaine priorité : fonction « Prix de revente » (Vinted / Leboncoin / eBay).
 
 ## ✅ Fait
 - [x] Projet Gradle (template AlcoLimit : AGP 9.1.1, Kotlin 2.1.20, Compose BOM 2025.01, WorkManager)
@@ -28,6 +28,7 @@ _MAJ 2026-11-03_ — ✅ idealo lu via son API JSON : 10 catégories au choix (�
 - [x] Version debug installable à côté de la release (`applicationIdSuffix = ".debug"`)
 - [x] Crash au clic sur un produit corrigé (`ActivityNotFoundException ... dat=`) : lien de secours `idealo.fr/prix/{id}.html` + clic protégé — 3 tests `DealUrlTest`
 - [x] Liste « Fausses promos » retirée de l'écran (toujours calculée et écartée par le scan, juste plus affichée)
+- [x] Release v1.1 (versionCode 2) publiée sur GitHub et installée
 - [x] Maquette multi-sources (`../idealo_patch/prototype/deal_alert.html`)
 
 ## ⏳ Reste à faire
