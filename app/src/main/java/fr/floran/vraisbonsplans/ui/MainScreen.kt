@@ -71,6 +71,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.work.WorkInfo
 import fr.floran.vraisbonsplans.model.Deal
+import fr.floran.vraisbonsplans.model.openableUrl
 import fr.floran.vraisbonsplans.scan.ScanScheduler
 import fr.floran.vraisbonsplans.scan.ScanSettings
 import fr.floran.vraisbonsplans.scan.ScanSettingsStore
@@ -481,7 +482,11 @@ private fun DealCard(deal: Deal, onIgnore: () -> Unit) {
     val context = LocalContext.current
     Card(
         modifier = Modifier.fillMaxWidth().clickable {
-            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(deal.productUrl)))
+            try {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(deal.openableUrl)))
+            } catch (error: android.content.ActivityNotFoundException) {
+                android.widget.Toast.makeText(context, "Impossible d'ouvrir ce produit", android.widget.Toast.LENGTH_SHORT).show()
+            }
         },
     ) {
         Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {

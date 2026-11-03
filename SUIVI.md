@@ -26,6 +26,7 @@ _MAJ 2026-11-03_ — ✅ idealo lu via son API JSON : 10 catégories au choix (�
 - [x] Barre de vérification qui avance (étapes idealo 55 % → Dealabs 60 % → Ledenicheur 97 %, progression lissée)
 - [x] idealo : API `/csr/api/v2/modules/dealsResult` (prix, % idealo, image inclus) au lieu de lire les liens de la page ; catégories (10 grandes catégories idealo) + nombre de produits analysés dans ⚙ — 3 tests `DealsQueryPlanner`
 - [x] Version debug installable à côté de la release (`applicationIdSuffix = ".debug"`)
+- [x] Crash au clic sur un produit corrigé (`ActivityNotFoundException ... dat=`) : lien de secours `idealo.fr/prix/{id}.html` + clic protégé — 3 tests `DealUrlTest`
 - [x] Maquette multi-sources (`../idealo_patch/prototype/deal_alert.html`)
 
 ## ⏳ Reste à faire
@@ -65,4 +66,5 @@ _MAJ 2026-11-03_ — ✅ idealo lu via son API JSON : 10 catégories au choix (�
 - Grandes catégories idealo : `https://cdn.idealo.com/storage/assets/navigation/navigation_fr_FR.json`.
 - Depuis le PC, `curl_cffi` (`impersonate='chrome'`) passe l'anti-robot pour la page et l'API bons plans, mais `/price-chart/...` répond 404 hors navigateur → tester l'historique sur le téléphone.
 - HyperOS masque les `Log.i` d'une app release et l'install adb d'un NOUVEAU paquet demande une confirmation à l'écran (échec « INSTALL_FAILED_USER_RESTRICTED » si verrouillé).
+- **Crash clic produit** : l'API bons plans, appelée depuis un navigateur mobile, renvoie parfois dans `href` un jeton chiffré au lieu d'une URL → `Uri.parse` donne un lien vide, ActivityNotFoundException. `https://www.idealo.fr/prix/{id}.html` redirige vers la fiche.
 - Copier `settings.gradle.kts` depuis AlcoLimit plutôt que via heredoc bash (les `\\` du regex sont mangés).

@@ -9,6 +9,16 @@ enum class DealSource(val label: String) {
 }
 
 /** A product seen on a source, after the real discount has been computed. */
+/** Product page to open; falls back to the idealo id when the stored link is not a web address. */
+val Deal.openableUrl: String
+    get() = when {
+        productUrl.startsWith("http") -> productUrl
+        key.startsWith(IDEALO_KEY_PREFIX) -> "https://www.idealo.fr/prix/${key.removePrefix(IDEALO_KEY_PREFIX)}.html"
+        else -> "https://www.idealo.fr/prechcat.html?q=" + java.net.URLEncoder.encode(name, "UTF-8")
+    }
+
+private const val IDEALO_KEY_PREFIX = "idealo:"
+
 data class Deal(
     /** Stable key used to remember notified and ignored products, e.g. "idealo:201646095". */
     val key: String,

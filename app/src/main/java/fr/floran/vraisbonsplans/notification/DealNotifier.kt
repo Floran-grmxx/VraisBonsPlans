@@ -10,6 +10,7 @@ import android.net.Uri
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import fr.floran.vraisbonsplans.model.Deal
+import fr.floran.vraisbonsplans.model.openableUrl
 import fr.floran.vraisbonsplans.scan.ScanStore
 import fr.floran.vraisbonsplans.ui.formatEuros
 
@@ -82,7 +83,7 @@ object DealNotifier {
     private fun openDealIntent(context: Context, deal: Deal, requestCode: Int): PendingIntent =
         PendingIntent.getActivity(
             context, requestCode,
-            Intent(Intent.ACTION_VIEW, Uri.parse(deal.productUrl)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            Intent(Intent.ACTION_VIEW, Uri.parse(deal.openableUrl)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_IMMUTABLE,
         )
 

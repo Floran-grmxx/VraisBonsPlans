@@ -60,7 +60,9 @@ object IdealoSource {
                 for (const item of result.items) {
                   if (item.type !== 'PRODUCT' || !item.rawPrice || !item.bargainInfo || byId[item.id]) continue;
                   byId[item.id] = {
-                    id: item.id, name: item.title, url: item.href, imageUrl: item.imageUrl,
+                    // On mobile, href is sometimes an encrypted token: /prix/{id}.html redirects to the product page.
+                    id: item.id, name: item.title, imageUrl: item.imageUrl,
+                    url: /^https?:\/\//.test(item.href || '') ? item.href : 'https://www.idealo.fr/prix/' + item.id + '.html',
                     currentPrice: Math.round(item.rawPrice * 100), discountRate: item.bargainInfo.saving || 0,
                   };
                 }
