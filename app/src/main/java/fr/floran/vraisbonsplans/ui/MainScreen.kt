@@ -225,14 +225,6 @@ fun MainScreen(isBatteryUnrestricted: Boolean) {
             }
         }
 
-        val fakeDeals = filter.apply(result?.fakeDeals.orEmpty())
-        if (fakeDeals.isNotEmpty()) {
-            item {
-                Spacer(Modifier.size(8.dp))
-                Text("Fausses promos", fontWeight = FontWeight.SemiBold)
-            }
-            items(fakeDeals, key = { "fake-" + it.key }) { deal -> FakeDealCard(deal) }
-        }
     }
 }
 
@@ -540,25 +532,6 @@ private fun DealCard(deal: Deal, onIgnore: () -> Unit) {
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp),
                     )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FakeDealCard(deal: Deal) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            RemoteImage(deal.imageUrl, Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)))
-            Column(Modifier.weight(1f)) {
-                Text(deal.name, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    "-${deal.sourceDiscountPercent ?: "?"} % annoncé · -${deal.realDiscountPercent ?: "?"} % réel",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                deal.rejectionReason?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

@@ -27,6 +27,7 @@ _MAJ 2026-11-03_ — ✅ idealo lu via son API JSON : 10 catégories au choix (�
 - [x] idealo : API `/csr/api/v2/modules/dealsResult` (prix, % idealo, image inclus) au lieu de lire les liens de la page ; catégories (10 grandes catégories idealo) + nombre de produits analysés dans ⚙ — 3 tests `DealsQueryPlanner`
 - [x] Version debug installable à côté de la release (`applicationIdSuffix = ".debug"`)
 - [x] Crash au clic sur un produit corrigé (`ActivityNotFoundException ... dat=`) : lien de secours `idealo.fr/prix/{id}.html` + clic protégé — 3 tests `DealUrlTest`
+- [x] Liste « Fausses promos » retirée de l'écran (toujours calculée et écartée par le scan, juste plus affichée)
 - [x] Maquette multi-sources (`../idealo_patch/prototype/deal_alert.html`)
 
 ## ⏳ Reste à faire

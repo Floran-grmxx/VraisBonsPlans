@@ -14,7 +14,7 @@ Les comparateurs affichent souvent des « -70 % » calculés sur un prix gonflé
 
 - **Sources** : idealo (plus grosses baisses), Dealabs (erreurs de prix de moins de 48 h), Ledenicheur (recoupement).
 - **Réduction réelle** : prix habituel = médiane des 30 derniers jours, pics et creux absurdes retirés ; une promo ne compte que si c'est un nouveau prix plancher.
-- **Anti fausses promos** : au-delà de -50 %, une deuxième source doit confirmer ; sinon le produit est classé « À vérifier » sans notification.
+- **Anti fausses promos** : les fausses promos sont écartées ; au-delà de -50 %, une deuxième source doit confirmer, sinon le produit est classé « À vérifier » sans notification.
 - **Alertes automatiques** : seuil -30 / -50 / -75 / -90 %, vérification de toutes les 15 min à toutes les 12 h, bouton « Ignorer ce produit ».
 - **Recherche et filtres** : prix min/max, sources, tri.
 
