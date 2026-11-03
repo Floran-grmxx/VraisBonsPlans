@@ -23,7 +23,6 @@ import java.time.LocalDate
 object DealScanner {
 
     private const val TAG = "DealScanner"
-    private const val IDEALO_PRODUCT_LIMIT = 40
     /** Dealabs price errors older than this are usually fixed or sold out. */
     private const val DEALABS_MAXIMUM_AGE_SECONDS = 48 * 3_600L
     /** From this real discount on, a second source must confirm the deal before any notification. */
@@ -47,7 +46,7 @@ object DealScanner {
         val fakeDeals = mutableListOf<Deal>()
         onProgress(IDEALO_STEP_END)
         runSource("idealo", errors) {
-            IdealoSource.fetchDeals(context, IDEALO_PRODUCT_LIMIT).forEach { product ->
+            IdealoSource.fetchDeals(context, settings.categories, settings.productLimit).forEach { product ->
                 val analysis = RealDiscountCalculator.analyze(product.history, product.currentPriceCents, today)
                 when {
                     analysis != null && analysis.realDiscountPercent >= threshold && analysis.isNewLow ->

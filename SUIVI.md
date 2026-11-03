@@ -1,7 +1,7 @@
 # SUIVI — Vrais bons plans (app compagnon idealo)
 
 ## 🧭 Ligne directrice
-_MAJ 2026-11-03_ — ✅ v1.0 publiée (release GitHub). Écran épuré : plus de titre, barre du haut = recherche + icônes filtres / réglages ⚙ / vérifier ⟳, barre de progression qui avance par étape. Prochaine priorité : retour de Floran sur l'écran épuré, puis « Prix de revente ».
+_MAJ 2026-11-03_ — ✅ idealo lu via son API JSON : 10 catégories au choix (⚙) et 50 / 100 / 200 produits analysés ; scan vérifié sur le Redmi (mode, beauté, jouets… confirmés par Ledenicheur). Prochaine priorité : retour de Floran, release 1.1, puis « Prix de revente ».
 
 ## ✅ Fait
 - [x] Projet Gradle (template AlcoLimit : AGP 9.1.1, Kotlin 2.1.20, Compose BOM 2025.01, WorkManager)
@@ -24,6 +24,8 @@ _MAJ 2026-11-03_ — ✅ v1.0 publiée (release GitHub). Écran épuré : plus d
 - [x] Release v1.0 signée publiée sur GitHub (clé : `~/.android/keystores/vraisbonsplans-release.jks`, mots de passe dans `keystore.properties` ignoré par Git — à sauvegarder)
 - [x] Épuration de l'écran : textes explicatifs retirés, réglages derrière ⚙, « Ignorer » en croix, % idealo affiché seulement s'il diffère de 5 points ou plus
 - [x] Barre de vérification qui avance (étapes idealo 55 % → Dealabs 60 % → Ledenicheur 97 %, progression lissée)
+- [x] idealo : API `/csr/api/v2/modules/dealsResult` (prix, % idealo, image inclus) au lieu de lire les liens de la page ; catégories (10 grandes catégories idealo) + nombre de produits analysés dans ⚙ — 3 tests `DealsQueryPlanner`
+- [x] Version debug installable à côté de la release (`applicationIdSuffix = ".debug"`)
 - [x] Maquette multi-sources (`../idealo_patch/prototype/deal_alert.html`)
 
 ## ⏳ Reste à faire
@@ -59,4 +61,8 @@ _MAJ 2026-11-03_ — ✅ v1.0 publiée (release GitHub). Écran épuré : plus d
 - Kotlin écrit via script Python : doubler les antislashs dans le .py (`\\\\p{M}`) pour obtenir `"\\p{M}"` en Kotlin (« Unsupported escape sequence » sinon).
 - Keystore PKCS12 : le mot de passe de la clé doit être identique à celui du keystore.
 - La release (clé release) ne s'installe pas par-dessus la version debug : désinstaller la debug d'abord.
+- **API bons plans idealo** : `https://www.idealo.fr/csr/api/v2/modules/dealsResult?locale=fr_FR&sort=DISCOUNT_DESC&itemStates=BARGAIN&itemsPerPage=N&categoryId=X` — `itemsPerPage` max 99 (100 → erreur) ; `pageIndex` ≥ 1 renvoie 0 produit (pagination non exploitable) → élargir via plusieurs catégories. Autres filtres dispo : `discountFrom`, `priceFrom`/`priceTo`.
+- Grandes catégories idealo : `https://cdn.idealo.com/storage/assets/navigation/navigation_fr_FR.json`.
+- Depuis le PC, `curl_cffi` (`impersonate='chrome'`) passe l'anti-robot pour la page et l'API bons plans, mais `/price-chart/...` répond 404 hors navigateur → tester l'historique sur le téléphone.
+- HyperOS masque les `Log.i` d'une app release et l'install adb d'un NOUVEAU paquet demande une confirmation à l'écran (échec « INSTALL_FAILED_USER_RESTRICTED » si verrouillé).
 - Copier `settings.gradle.kts` depuis AlcoLimit plutôt que via heredoc bash (les `\\` du regex sont mangés).

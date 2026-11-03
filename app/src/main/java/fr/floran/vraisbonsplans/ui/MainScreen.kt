@@ -44,6 +44,7 @@ import androidx.compose.runtime.LaunchedEffect
 import fr.floran.vraisbonsplans.filter.DealFilter
 import fr.floran.vraisbonsplans.filter.DealSort
 import fr.floran.vraisbonsplans.model.DealSource
+import fr.floran.vraisbonsplans.sources.IdealoCategory
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -411,9 +412,41 @@ private fun SettingsCard(settings: ScanSettings, lastScan: String?, onChange: (S
                 enabled = settings.minimumDiscountPercent < 75,
                 onSelect = { onChange(settings.copy(intervalMinutes = it)) },
             )
+            Text("Catégories", fontWeight = FontWeight.SemiBold)
+            CategoryChips(settings.categories) { onChange(settings.copy(categories = it)) }
+            Text("Produits analysés", fontWeight = FontWeight.SemiBold)
+            ChoiceChips(
+                choices = ScanSettings.PRODUCT_LIMIT_CHOICES,
+                selected = settings.productLimit,
+                label = { "$it" },
+                onSelect = { onChange(settings.copy(productLimit = it)) },
+            )
             lastScan?.let {
                 Text("Dernière vérification : $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        }
+    }
+}
+
+/** "Toutes" plus one chip per idealo category; an empty selection means every category. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun CategoryChips(selected: Set<IdealoCategory>, onChange: (Set<IdealoCategory>) -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FilterChip(
+            selected = selected.isEmpty(),
+            onClick = { onChange(emptySet()) },
+            label = { Text("Toutes") },
+            colors = selectedOrangeChipColors(),
+        )
+        IdealoCategory.entries.forEach { category ->
+            val isSelected = category in selected
+            FilterChip(
+                selected = isSelected,
+                onClick = { onChange(if (isSelected) selected - category else selected + category) },
+                label = { Text(category.label) },
+                colors = selectedOrangeChipColors(),
+            )
         }
     }
 }

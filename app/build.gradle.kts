@@ -39,6 +39,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Installs next to the signed release, so test builds never replace the real app.
+            applicationIdSuffix = ".debug"
+        }
         release {
             if (keystorePropertiesFile.exists()) signingConfig = signingConfigs.getByName("release")
             // No shrinking: the WebView JavaScript bridge and JSON field names must keep their names.
