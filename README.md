@@ -1,5 +1,7 @@
 # Vrais bons plans
 
+[![Release](https://img.shields.io/github/v/release/Floran-grmxx/VraisBonsPlans)](https://github.com/Floran-grmxx/VraisBonsPlans/releases/latest)
+
 Application Android qui repère les **vraies** promos et les erreurs de prix, en écartant les fausses réductions.
 
 Les comparateurs affichent souvent des « -70 % » calculés sur un prix gonflé pendant quelques semaines. L'app recalcule la réduction réelle à partir de l'historique des prix et la recoupe avec un deuxième site avant de t'alerter.
@@ -18,9 +20,11 @@ Les comparateurs affichent souvent des « -70 % » calculés sur un prix gonflé
 - **Alertes automatiques** : seuil -30 / -50 / -75 / -90 %, vérification de toutes les 15 min à toutes les 12 h, bouton « Ignorer ce produit ».
 - **Recherche et filtres** : prix min/max, sources, tri.
 
-## Installation
+## Télécharger
 
-Télécharger l'APK dans les [releases](https://github.com/Floran-grmxx/VraisBonsPlans/releases/latest) (Android 8 minimum).
+📦 [Dernier APK](https://github.com/Floran-grmxx/VraisBonsPlans/releases/latest) (Android 8.0+)
+
+🔄 **Mises à jour automatiques** via [Obtainium](https://github.com/ImranR98/Obtainium) : ajouter l'URL `https://github.com/Floran-grmxx/VraisBonsPlans` dans l'app — elle installe l'APK et propose chaque nouvelle release.
 
 ## Technique
 
