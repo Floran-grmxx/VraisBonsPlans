@@ -27,6 +27,14 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.graphics.vector.ImageVector
+import fr.floran.vraisbonsplans.scan.ScanWorker
+import kotlinx.coroutines.delay
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -88,10 +96,24 @@ fun MainScreen(isBatteryUnrestricted: Boolean) {
         }
     }
     val isScanning = isScanRequested || isWorkActive
+    val stepEnd by rememberUpdatedState(
+        manualScans.firstOrNull { it.state == WorkInfo.State.RUNNING }
+            ?.progress?.getFloat(ScanWorker.PROGRESS_STEP_END, FIRST_STEP_END) ?: FIRST_STEP_END,
+    )
+    // Creeps toward the end of the current step: always moving forward, slowing down until the step is done.
+    var scanProgress by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(isScanning) {
+        scanProgress = 0f
+        while (isScanning) {
+            delay(PROGRESS_TICK_MILLIS)
+            scanProgress += (stepEnd - scanProgress).coerceAtLeast(0f) * PROGRESS_EASING
+        }
+    }
     var filter by remember { mutableStateOf(DealFilter()) }
     var minimumPriceText by remember { mutableStateOf("") }
     var maximumPriceText by remember { mutableStateOf("") }
     var areFiltersOpen by remember { mutableStateOf(false) }
+    var areSettingsOpen by remember { mutableStateOf(false) }
     var autostartConfirmed by remember { mutableStateOf(BackgroundSetup.isAutostartConfirmed(context)) }
 
     fun update(newSettings: ScanSettings) {
@@ -105,22 +127,27 @@ fun MainScreen(isBatteryUnrestricted: Boolean) {
         contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item {
-            Text("Vrais bons plans", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(
-                "idealo · Dealabs · recoupé avec Ledenicheur",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
         stickyHeader {
             FilterBar(
                 filter = filter,
                 minimumPriceText = minimumPriceText,
                 maximumPriceText = maximumPriceText,
                 areFiltersOpen = areFiltersOpen,
-                onToggleFilters = { areFiltersOpen = !areFiltersOpen },
+                onToggleFilters = {
+                    areFiltersOpen = !areFiltersOpen
+                    areSettingsOpen = false
+                },
+                areSettingsOpen = areSettingsOpen,
+                onToggleSettings = {
+                    areSettingsOpen = !areSettingsOpen
+                    areFiltersOpen = false
+                },
+                isScanning = isScanning,
+                scanProgress = scanProgress,
+                onScan = {
+                    isScanRequested = true
+                    ScanScheduler.scanNow(context)
+                },
                 onFilterChange = { filter = it },
                 onMinimumPriceChange = {
                     minimumPriceText = it
@@ -154,50 +181,12 @@ fun MainScreen(isBatteryUnrestricted: Boolean) {
             }
         }
 
-        item { SettingsCard(settings, ::update) }
-
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Bons plans détectés", fontWeight = FontWeight.SemiBold)
-                    Text(
-                        result?.let { "Dernière vérification : ${DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(it.finishedAtMillis))}" }
-                            ?: "Aucune vérification pour l'instant",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Button(
-                    onClick = {
-                        isScanRequested = true
-                        ScanScheduler.scanNow(context)
-                    },
-                    enabled = !isScanning,
-                    colors = ButtonDefaults.buttonColors(
-                        disabledContainerColor = AppColors.Orange,
-                        disabledContentColor = androidx.compose.ui.graphics.Color.White,
-                    ),
-                ) {
-                    if (isScanning) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
-                            color = androidx.compose.ui.graphics.Color.White,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text("Vérification…")
-                    } else {
-                        Text("Vérifier")
-                    }
-                }
-            }
-            if (isScanning) {
-                Spacer(Modifier.size(8.dp))
-                LinearProgressIndicator(Modifier.fillMaxWidth(), color = AppColors.Orange)
-                Text(
-                    "Recherche sur idealo, Dealabs et Ledenicheur (environ 1 min)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+        if (areSettingsOpen) {
+            item {
+                SettingsCard(
+                    settings = settings,
+                    lastScan = result?.let { DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(it.finishedAtMillis)) },
+                    onChange = ::update,
                 )
             }
         }
@@ -214,7 +203,7 @@ fun MainScreen(isBatteryUnrestricted: Boolean) {
         if (result != null && allDeals.isEmpty()) {
             item {
                 Text(
-                    "Aucun vrai bon plan à -${settings.minimumDiscountPercent} % ou plus pour l'instant. Tu seras notifié dès qu'il y en a un.",
+                    "Aucun bon plan pour l'instant.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -228,11 +217,6 @@ fun MainScreen(isBatteryUnrestricted: Boolean) {
             item {
                 Spacer(Modifier.size(8.dp))
                 Text("À vérifier", fontWeight = FontWeight.SemiBold)
-                Text(
-                    "Grosse baisse sur idealo, mais historique douteux et aucune 2e source pour confirmer : pas de notification",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
             items(dealsToVerify, key = { "verify-" + it.key }) { deal ->
                 DealCard(deal, onIgnore = { ScanStore.ignore(context, deal.key) })
@@ -243,12 +227,7 @@ fun MainScreen(isBatteryUnrestricted: Boolean) {
         if (fakeDeals.isNotEmpty()) {
             item {
                 Spacer(Modifier.size(8.dp))
-                Text("Fausses réductions écartées", fontWeight = FontWeight.SemiBold)
-                Text(
-                    "Promo affichée par la source, mais prix de référence gonflé ou pas un vrai prix plancher",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Text("Fausses promos", fontWeight = FontWeight.SemiBold)
             }
             items(fakeDeals, key = { "fake-" + it.key }) { deal -> FakeDealCard(deal) }
         }
@@ -263,6 +242,11 @@ private fun FilterBar(
     maximumPriceText: String,
     areFiltersOpen: Boolean,
     onToggleFilters: () -> Unit,
+    areSettingsOpen: Boolean,
+    onToggleSettings: () -> Unit,
+    isScanning: Boolean,
+    scanProgress: Float,
+    onScan: () -> Unit,
     onFilterChange: (DealFilter) -> Unit,
     onMinimumPriceChange: (String) -> Unit,
     onMaximumPriceChange: (String) -> Unit,
@@ -272,12 +256,12 @@ private fun FilterBar(
         Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
                 value = filter.query,
                 onValueChange = { onFilterChange(filter.copy(query = it)) },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Rechercher un produit") },
+                placeholder = { Text("Rechercher") },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 trailingIcon = {
                     if (filter.query.isNotEmpty()) {
@@ -289,18 +273,17 @@ private fun FilterBar(
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
             )
-            FilterChip(
-                selected = areFiltersOpen || filter.activeFilterCount > 0,
-                onClick = onToggleFilters,
-                leadingIcon = { Icon(Icons.Filled.Tune, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                label = { Text(if (filter.activeFilterCount > 0) "Filtres (${filter.activeFilterCount})" else "Filtres") },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    selectedLabelColor = AppColors.Orange,
-                    selectedLeadingIconColor = AppColors.Orange,
-                ),
-            )
+            BarIcon(Icons.Filled.Tune, "Filtres", isActive = areFiltersOpen || filter.activeFilterCount > 0, onClick = onToggleFilters)
+            BarIcon(Icons.Filled.Settings, "Réglages des alertes", isActive = areSettingsOpen, onClick = onToggleSettings)
+            if (isScanning) {
+                Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = AppColors.Orange)
+                }
+            } else {
+                BarIcon(Icons.Filled.Refresh, "Vérifier maintenant", isActive = false, onClick = onScan)
+            }
         }
+        if (isScanning) LinearProgressIndicator(progress = { scanProgress }, modifier = Modifier.fillMaxWidth(), color = AppColors.Orange)
         if (areFiltersOpen) {
             Card {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -347,6 +330,17 @@ private fun FilterBar(
 }
 
 @Composable
+private fun BarIcon(icon: ImageVector, description: String, isActive: Boolean, onClick: () -> Unit) {
+    IconButton(onClick = onClick) {
+        Icon(
+            icon,
+            contentDescription = description,
+            tint = if (isActive) AppColors.Orange else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
 private fun PriceField(label: String, value: String, onValueChange: (String) -> Unit, modifier: Modifier) {
     OutlinedTextField(
         value = value,
@@ -377,16 +371,12 @@ private fun SetupCard(
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Réglages nécessaires pour les alertes", fontWeight = FontWeight.SemiBold)
-            Text(
-                "Sans ça, le téléphone bloque les vérifications quand l'app est fermée.",
-                style = MaterialTheme.typography.bodySmall,
-            )
             if (showBattery) {
-                OutlinedButton(onClick = onBattery, modifier = Modifier.fillMaxWidth()) { Text("1. Batterie : autoriser sans restriction") }
+                OutlinedButton(onClick = onBattery, modifier = Modifier.fillMaxWidth()) { Text("Batterie sans restriction") }
             }
             if (showAutostart) {
                 OutlinedButton(onClick = onAutostart, modifier = Modifier.fillMaxWidth()) {
-                    Text("2. Activer « Démarrage automatique »")
+                    Text("Démarrage automatique")
                 }
                 TextButton(onClick = onAutostartDone) { Text("C'est fait") }
             }
@@ -395,41 +385,35 @@ private fun SetupCard(
 }
 
 @Composable
-private fun SettingsCard(settings: ScanSettings, onChange: (ScanSettings) -> Unit) {
+private fun SettingsCard(settings: ScanSettings, lastScan: String?, onChange: (ScanSettings) -> Unit) {
     Card {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Alertes automatiques", fontWeight = FontWeight.SemiBold)
-                    Text("Notification pour tout vrai bon plan", style = MaterialTheme.typography.bodySmall)
-                }
+                Text("Alertes", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                 Switch(
                     checked = settings.alertsEnabled,
                     onCheckedChange = { onChange(settings.copy(alertsEnabled = it)) },
                     colors = SwitchDefaults.colors(checkedTrackColor = AppColors.Orange, checkedThumbColor = androidx.compose.ui.graphics.Color.White),
                 )
             }
-            Text("Réduction réelle minimum", fontWeight = FontWeight.SemiBold)
+            Text("Réduction minimum", fontWeight = FontWeight.SemiBold)
             ChoiceChips(
                 choices = ScanSettings.DISCOUNT_CHOICES,
                 selected = settings.minimumDiscountPercent,
                 label = { "-$it %" },
                 onSelect = { onChange(settings.copy(minimumDiscountPercent = it)) },
             )
-            Text(
-                if (settings.minimumDiscountPercent >= 75) "Seuil élevé : chasse aux erreurs de prix, vérification toutes les 15 min."
-                else "-75 % et -90 % servent à attraper les erreurs de prix (article à 1 €…).",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text("Vérifier", fontWeight = FontWeight.SemiBold)
+            Text("Fréquence", fontWeight = FontWeight.SemiBold)
             ChoiceChips(
                 choices = ScanSettings.INTERVAL_CHOICES,
                 selected = settings.effectiveIntervalMinutes,
-                label = { if (it < 60) "$it min" else if (it == 60) "Toutes les heures" else "${it / 60} h" },
+                label = { if (it < 60) "$it min" else "${it / 60} h" },
                 enabled = settings.minimumDiscountPercent < 75,
                 onSelect = { onChange(settings.copy(intervalMinutes = it)) },
             )
+            lastScan?.let {
+                Text("Dernière vérification : $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
@@ -471,41 +455,52 @@ private fun DealCard(deal: Deal, onIgnore: () -> Unit) {
             RemoteImage(deal.imageUrl, Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(deal.name, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(
-                    buildString {
-                        append(deal.source.label)
-                        if (deal.detail.isNotEmpty()) append(" · ").append(deal.detail)
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    if (deal.currentPriceCents > 0) formatEuros(deal.currentPriceCents) else "Prix inconnu",
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                deal.referencePriceCents?.let {
-                    Text("Prix habituel : ${formatEuros(it)}", style = MaterialTheme.typography.bodySmall)
+                if (deal.detail.isNotEmpty()) {
+                    Text(deal.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        if (deal.currentPriceCents > 0) formatEuros(deal.currentPriceCents) else "Prix inconnu",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    deal.referencePriceCents?.let {
+                        Text(
+                            formatEuros(it),
+                            style = MaterialTheme.typography.bodySmall,
+                            textDecoration = TextDecoration.LineThrough,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
                 deal.crossCheck?.let {
+                    val isConfirmed = it.contains("✓")
                     Text(
-                        it,
+                        if (isConfirmed) "✓ Ledenicheur" else it,
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (it.contains("✓")) AppColors.Green else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (isConfirmed) AppColors.Green else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                }
-                TextButton(onClick = onIgnore, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
-                    Text("Ignorer ce produit")
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
                 DiscountBadge(deal.realDiscountPercent?.let { "-$it %" } ?: "Erreur")
-                deal.sourceDiscountPercent?.let {
+                // The source's own claim only matters when it differs from the real discount.
+                val sourceDiscount = deal.sourceDiscountPercent
+                val realDiscount = deal.realDiscountPercent
+                if (sourceDiscount != null && (realDiscount == null || sourceDiscount - realDiscount >= MEANINGFUL_GAP_PERCENT)) {
                     Text(
-                        "-$it % ${deal.source.label}",
+                        "-$sourceDiscount %",
                         style = MaterialTheme.typography.labelSmall,
                         textDecoration = TextDecoration.LineThrough,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                IconButton(onClick = onIgnore, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = "Ignorer ce produit",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
                     )
                 }
             }
@@ -521,7 +516,7 @@ private fun FakeDealCard(deal: Deal) {
             Column(Modifier.weight(1f)) {
                 Text(deal.name, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
-                    "${deal.source.label} : -${deal.sourceDiscountPercent ?: "?"} % · réel : -${deal.realDiscountPercent ?: "?"} %",
+                    "-${deal.sourceDiscountPercent ?: "?"} % annoncé · -${deal.realDiscountPercent ?: "?"} % réel",
                     style = MaterialTheme.typography.bodySmall,
                 )
                 deal.rejectionReason?.let {
@@ -545,3 +540,10 @@ private fun DiscountBadge(text: String) {
             .width(androidx.compose.ui.unit.Dp.Unspecified),
     )
 }
+
+private const val MEANINGFUL_GAP_PERCENT = 5
+/** Until the worker reports its first step, the bar heads for the end of the idealo step. */
+private const val FIRST_STEP_END = 0.55f
+private const val PROGRESS_TICK_MILLIS = 100L
+/** Share of the remaining gap covered per tick: about 12 s to cover two thirds of a step. */
+private const val PROGRESS_EASING = 0.008f

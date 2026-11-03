@@ -1,7 +1,7 @@
 # SUIVI — Vrais bons plans (app compagnon idealo)
 
 ## 🧭 Ligne directrice
-_MAJ 2026-11-01_ — ✅ Alerte multi-sources fonctionnelle + écran lisible en thème sombre, bouton « Vérifier » avec chargement, recherche et filtres (prix min/max, sources, tri). Prochaine priorité : retour de Floran sur les filtres, puis fonction « Prix de revente » (Vinted / Leboncoin / eBay).
+_MAJ 2026-11-03_ — ✅ v1.0 publiée (release GitHub). Écran épuré : plus de titre, barre du haut = recherche + icônes filtres / réglages ⚙ / vérifier ⟳, barre de progression qui avance par étape. Prochaine priorité : retour de Floran sur l'écran épuré, puis « Prix de revente ».
 
 ## ✅ Fait
 - [x] Projet Gradle (template AlcoLimit : AGP 9.1.1, Kotlin 2.1.20, Compose BOM 2025.01, WorkManager)
@@ -22,6 +22,8 @@ _MAJ 2026-11-01_ — ✅ Alerte multi-sources fonctionnelle + écran lisible en 
 - [x] Recherche + filtres épinglés en haut (`DealFilter`) : prix min/max, sources, tri — 5 tests (filtre « réduction min » retiré : doublon avec le seuil des alertes)
 - [x] Dépôt GitHub **public** : https://github.com/Floran-grmxx/VraisBonsPlans (branche main) + README avec capture (`docs/screenshots/`)
 - [x] Release v1.0 signée publiée sur GitHub (clé : `~/.android/keystores/vraisbonsplans-release.jks`, mots de passe dans `keystore.properties` ignoré par Git — à sauvegarder)
+- [x] Épuration de l'écran : textes explicatifs retirés, réglages derrière ⚙, « Ignorer » en croix, % idealo affiché seulement s'il diffère de 5 points ou plus
+- [x] Barre de vérification qui avance (étapes idealo 55 % → Dealabs 60 % → Ledenicheur 97 %, progression lissée)
 - [x] Maquette multi-sources (`../idealo_patch/prototype/deal_alert.html`)
 
 ## ⏳ Reste à faire

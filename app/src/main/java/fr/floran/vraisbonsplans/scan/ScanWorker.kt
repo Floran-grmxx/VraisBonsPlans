@@ -10,15 +10,23 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import fr.floran.vraisbonsplans.notification.DealNotifier
 import java.util.concurrent.TimeUnit
 
 /** One scan of every source, followed by notifications for the deals not seen before. */
 class ScanWorker(context: Context, parameters: WorkerParameters) : CoroutineWorker(context, parameters) {
 
+    companion object {
+        /** Progress data key: fraction the bar may reach during the current step. */
+        const val PROGRESS_STEP_END = "step_end"
+    }
+
     override suspend fun doWork(): Result {
         val settings = ScanSettingsStore.read(applicationContext)
-        val result = DealScanner.scan(applicationContext, settings)
+        val result = DealScanner.scan(applicationContext, settings) { stepEnd ->
+            setProgress(workDataOf(PROGRESS_STEP_END to stepEnd))
+        }
         ScanStore.save(applicationContext, result)
 
         if (settings.alertsEnabled) {

@@ -28,8 +28,15 @@ object DealScanner {
     private const val DEALABS_MAXIMUM_AGE_SECONDS = 48 * 3_600L
     /** From this real discount on, a second source must confirm the deal before any notification. */
     private const val CONFIRMATION_REQUIRED_FROM_PERCENT = 50
+    private const val IDEALO_STEP_END = 0.55f
+    private const val DEALABS_STEP_END = 0.6f
+    private const val LEDENICHEUR_STEP_END = 0.97f
 
-    suspend fun scan(context: Context, settings: ScanSettings): ScanResult {
+    /**
+     * [onProgress] receives the fraction the progress bar may reach during the step that starts,
+     * so the bar keeps moving forward while a slow page loads.
+     */
+    suspend fun scan(context: Context, settings: ScanSettings, onProgress: suspend (Float) -> Unit = {}): ScanResult {
         val threshold = settings.minimumDiscountPercent
         val today = LocalDate.now().toEpochDay()
         val errors = mutableListOf<String>()
@@ -38,6 +45,7 @@ object DealScanner {
         val idealoCandidates = mutableListOf<Deal>()
         val consistentHistoryKeys = mutableSetOf<String>()
         val fakeDeals = mutableListOf<Deal>()
+        onProgress(IDEALO_STEP_END)
         runSource("idealo", errors) {
             IdealoSource.fetchDeals(context, IDEALO_PRODUCT_LIMIT).forEach { product ->
                 val analysis = RealDiscountCalculator.analyze(product.history, product.currentPriceCents, today)
@@ -55,6 +63,7 @@ object DealScanner {
 
         // 2. Dealabs: recent price errors reported by the community.
         val dealabsItems = mutableListOf<DealabsItem>()
+        onProgress(DEALABS_STEP_END)
         runSource("Dealabs", errors) {
             val now = System.currentTimeMillis() / 1_000
             dealabsItems += withContext(Dispatchers.IO) { DealabsSource.fetchPriceErrors() }
@@ -64,6 +73,7 @@ object DealScanner {
         // 3. Ledenicheur: one page for every lookup of this scan.
         val titles = idealoCandidates.map { it.name } + dealabsItems.filter { it.priceCents != null }.map { it.title }
         var histories = emptyMap<String, LedenicheurHistory?>()
+        onProgress(LEDENICHEUR_STEP_END)
         runSource("Ledenicheur", errors) { histories = LedenicheurSource.findHistories(context, titles) }
 
         val deals = mutableListOf<Deal>()
@@ -166,12 +176,11 @@ object DealScanner {
         }
         val isModerate = (candidate.realDiscountPercent ?: 0) < CONFIRMATION_REQUIRED_FROM_PERCENT
         return if (hasConsistentHistory && isModerate) {
-            Verdict.Genuine(candidate.copy(crossCheck = "Absent de Ledenicheur : basé sur l'historique idealo seul"))
+            Verdict.Genuine(candidate.copy(crossCheck = "Non recoupé"))
         } else {
             Verdict.ToVerify(
                 candidate.copy(
-                    crossCheck = if (hasConsistentHistory) "Baisse énorme non confirmée (absent de Ledenicheur)"
-                    else "Historique idealo incohérent (prix gonflé des semaines), non confirmé par Ledenicheur",
+                    crossCheck = if (hasConsistentHistory) "Non confirmé" else "Historique douteux",
                 ),
             )
         }
