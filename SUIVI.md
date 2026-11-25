@@ -1,7 +1,7 @@
 # SUIVI — Vrais bons plans (app compagnon idealo)
 
 ## 🧭 Ligne directrice
-_MAJ 2026-11-25_ — **v1.2 publiée** (« Prix de revente » : Vinted + Leboncoin lus dans l'app, liens eBay vendus) ; validée sur le Redmi en build release (LEGO Technic ≈ 20 €, +9 €) et rotation OK. Prochaine priorité : retours d'usage sur la revente (précision, blocages Leboncoin).
+_MAJ 2026-11-25_ — **v1.3** : partage d'un produit depuis l'app idealo (verdict + revente) et ouverture des bons plans dans l'app idealo ; validé sur le Redmi en debug (Garmin Instinct 2X : -29 %, vrai bon plan). Prochaine priorité : retours d'usage (partage réel depuis l'app idealo, précision revente).
 
 ## ✅ Fait
 - [x] Projet Gradle (template AlcoLimit : AGP 9.1.1, Kotlin 2.1.20, Compose BOM 2025.01, WorkManager)
@@ -44,7 +44,7 @@ _MAJ 2026-11-25_ — **v1.2 publiée** (« Prix de revente » : Vinted + Lebonco
 - [x] v1.2 : versionCode 3, APK release signé, capture `resultats.png` refaite, README (fonction « Prix de revente »)
 - [x] Revente vérifiée sur la build release (R8 OK) et rotation sans perte ; release v1.2 publiée sur GitHub (`VraisBonsPlans-1.2.apk` + SHA-256)
 - [x] Toucher un bon plan idealo ouvre directement l'app idealo officielle (`setPackage("de.idealo.android")`, repli navigateur) — MIUI affichait le sélecteur « Ouvrir avec » alors que l'app gère `/prix/` (2026-11-25, non publié)
-- [ ] Recevoir un produit partagé depuis idealo (intent SEND) — piste : id extrait du lien `/prix/{id}`, page produit lue via `HiddenBrowser` (curl → 403), historique via `/price-chart/sites/4/products/{id}/history`, puis carte « Produit partagé » + revente. Reste à inspecter le DOM de la page produit (nom, prix, image)
+- [x] Recevoir un produit partagé depuis idealo (intent SEND) : `SharedLink`, `IdealoSource.fetchProduct`, verdict `DealScanner.sharedDeal`, carte « Produit partagé » + revente — validé sur le Redmi (v1.3)
 - [ ] « Moins cher ailleurs » (clé SerpApi à fournir)
 
 ## 📋 Notes / gotchas
@@ -88,3 +88,5 @@ _MAJ 2026-11-25_ — **v1.2 publiée** (« Prix de revente » : Vinted + Lebonco
 - **Leboncoin DataDome dans la WebView** : après quelques recherches, la page de résultats est remplacée par une page de contrôle titrée juste « leboncoin.fr » (sans `__NEXT_DATA__`) ; avant correctif, le script répondait « 0 annonce » au lieu de « bloqué ». Le blocage a disparu après redémarrage de l'émulateur.
 - **Émulateur** : en rendu logiciel (`hw.gpu.mode=software`), « System UI isn't responding » en boucle qui avale les taps → lancer avec `-gpu host` ; `settings put global hide_error_dialogs 1` masque ces dialogues. Le paquet debug s'appelle `fr.floran.vraisbonsplans.debug` (lancer avec `am start -n fr.floran.vraisbonsplans.debug/fr.floran.vraisbonsplans.MainActivity`). PC à ~2,5 Go libres : l'émulateur peut mourir.
 - **Crash natif WebView vu une fois** (émulateur, WebView 156) : SIGTRAP dans le thread `NetworkService` pendant la 2ᵉ recherche (repli sans marque) ; non reproduit sur 4 recherches suivantes → à surveiller sur le Redmi.
+- Le build **debug** a l'id `fr.floran.vraisbonsplans.debug` : viser ce paquet avec `am start -n` (sinon on teste la release installée).
+- Page produit idealo : le nom complet n'est que dans le titre d'onglet (« … au meilleur prix | … ») ; h1 et JSON-LD coupent la variante (« Garmin Instinct 2 »).

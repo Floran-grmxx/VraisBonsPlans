@@ -1,6 +1,7 @@
 package fr.floran.vraisbonsplans
 
 import android.Manifest
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -21,6 +22,9 @@ class MainActivity : ComponentActivity() {
     /** Refreshed in onResume: the user comes back from the battery settings screen. */
     private var isBatteryUnrestricted by mutableStateOf(false)
 
+    /** Text shared from another app (the idealo app's "Partager"); null once dismissed. */
+    private var sharedText by mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -28,12 +32,24 @@ class MainActivity : ComponentActivity() {
         ScanScheduler.apply(this, ScanSettingsStore.read(this))
         // "autorun" extra lets a scan be started through adb without touching the screen.
         if (intent.getBooleanExtra(EXTRA_AUTORUN, false)) ScanScheduler.scanNow(this)
+        readSharedText(intent)
         setContent {
             VraisBonsPlansTheme {
                 // Surface gives every Text the theme's content color (black text on dark background otherwise).
-                Surface(color = MaterialTheme.colorScheme.background) { MainScreen(isBatteryUnrestricted) }
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    MainScreen(isBatteryUnrestricted, sharedText, onSharedDismiss = { sharedText = null })
+                }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        readSharedText(intent)
+    }
+
+    private fun readSharedText(intent: Intent) {
+        if (intent.action == Intent.ACTION_SEND) sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
     }
 
     override fun onResume() {

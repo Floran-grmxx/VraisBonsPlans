@@ -81,12 +81,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import fr.floran.vraisbonsplans.sources.ResaleSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import fr.floran.vraisbonsplans.scan.DealScanner
+import fr.floran.vraisbonsplans.sources.IdealoSource
+import fr.floran.vraisbonsplans.sources.SharedLink
 import java.text.DateFormat
+import java.time.LocalDate
 import java.util.Date
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun MainScreen(isBatteryUnrestricted: Boolean) {
+fun MainScreen(isBatteryUnrestricted: Boolean, sharedText: String?, onSharedDismiss: () -> Unit) {
     val context = LocalContext.current
     var settings by remember { mutableStateOf(ScanSettingsStore.read(context)) }
     val scope = rememberCoroutineScope()
@@ -102,6 +106,29 @@ fun MainScreen(isBatteryUnrestricted: Boolean) {
                 android.util.Log.w("MainScreen", "resale lookup failed for ${deal.key}", error)
                 ResaleState.Failed
             }
+        }
+    }
+    var sharedState by remember { mutableStateOf<SharedState?>(null) }
+    LaunchedEffect(sharedText) {
+        if (sharedText == null) {
+            sharedState = null
+            return@LaunchedEffect
+        }
+        val url = SharedLink.idealoUrl(sharedText)
+        if (url == null) {
+            sharedState = SharedState.Failed("Ce partage ne contient pas de lien idealo.")
+            return@LaunchedEffect
+        }
+        sharedState = SharedState.Loading
+        sharedState = try {
+            SharedState.Done(DealScanner.sharedDeal(IdealoSource.fetchProduct(context, url), LocalDate.now().toEpochDay()))
+        } catch (cancellation: CancellationException) {
+            // A timeout is a CancellationException too, but must be reported.
+            if (cancellation !is kotlinx.coroutines.TimeoutCancellationException) throw cancellation
+            SharedState.Failed("idealo n'a pas répondu à temps.")
+        } catch (error: Exception) {
+            android.util.Log.w("MainScreen", "shared product lookup failed for $url", error)
+            SharedState.Failed("Impossible de lire ce produit sur idealo.")
         }
     }
     val result by ScanStore.lastResult(context).collectAsState()
@@ -209,6 +236,17 @@ fun MainScreen(isBatteryUnrestricted: Boolean) {
                     settings = settings,
                     lastScan = result?.let { DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(it.finishedAtMillis)) },
                     onChange = ::update,
+                )
+            }
+        }
+
+        sharedState?.let { state ->
+            item(key = "shared") {
+                SharedProductSection(
+                    state = state,
+                    resaleState = (state as? SharedState.Done)?.let { resaleStates[it.deal.key] },
+                    onResaleRequest = { (state as? SharedState.Done)?.let { requestResale(it.deal) } },
+                    onDismiss = onSharedDismiss,
                 )
             }
         }
@@ -520,6 +558,36 @@ private fun openDeal(context: android.content.Context, url: String) {
         context.startActivity(viewIntent)
     } catch (error: android.content.ActivityNotFoundException) {
         android.widget.Toast.makeText(context, "Impossible d'ouvrir ce produit", android.widget.Toast.LENGTH_SHORT).show()
+    }
+}
+
+/** Product shared from the idealo app, read on demand. */
+private sealed interface SharedState {
+    data object Loading : SharedState
+    data class Done(val deal: Deal) : SharedState
+    data class Failed(val message: String) : SharedState
+}
+
+@Composable
+private fun SharedProductSection(
+    state: SharedState,
+    resaleState: ResaleState?,
+    onResaleRequest: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Produit partagé", fontWeight = FontWeight.SemiBold)
+        when (state) {
+            SharedState.Loading -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                Text("Lecture du produit sur idealo…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            is SharedState.Done -> DealCard(state.deal, resaleState, onResaleRequest, onIgnore = onDismiss)
+            is SharedState.Failed -> Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("⚠ ${state.message}", color = AppColors.Red, modifier = Modifier.weight(1f))
+                TextButton(onClick = onDismiss) { Text("Fermer") }
+            }
+        }
     }
 }
 

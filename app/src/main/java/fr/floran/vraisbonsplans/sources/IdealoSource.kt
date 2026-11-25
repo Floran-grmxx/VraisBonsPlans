@@ -80,6 +80,56 @@ object IdealoSource {
         """.trimIndent()
     }
 
+    /** One product shared from the idealo app: [url] may be a /prix/ link or a short link the page resolves. */
+    suspend fun fetchProduct(context: Context, url: String): IdealoProduct {
+        val json = HiddenBrowser.runOnPage(context, url, PRODUCT_SCRIPT, PRODUCT_TIMEOUT_MILLIS)
+        Log.i(TAG, "shared product read: ${json.take(300)}")
+        return parse(json).single()
+    }
+
+    private const val PRODUCT_TIMEOUT_MILLIS = 60_000L
+
+    /**
+     * Reads the schema.org Product data that product pages carry for search engines, with the
+     * og: meta tags as fallback; the current price falls back to the last point of the history.
+     */
+    private val PRODUCT_SCRIPT = """
+        (async () => {
+          const canonical = (document.querySelector('link[rel="canonical"]') || {}).href || '';
+          const idMatch = (location.href + ' ' + canonical).match(/\/prix\/(\d+)/);
+          if (!idMatch) throw new Error('no product id in ' + location.href);
+          const id = idMatch[1];
+          let product = null;
+          for (const tag of document.querySelectorAll('script[type="application/ld+json"]')) {
+            try {
+              const data = JSON.parse(tag.textContent);
+              const nodes = [].concat(data, data['@graph'] || []);
+              product = nodes.find(node => node && [].concat(node['@type']).includes('Product')) || product;
+            } catch (error) { /* another JSON-LD block may be the product */ }
+          }
+          const meta = name => (document.querySelector('meta[property="' + name + '"]') || {}).content || '';
+          const offers = product && [].concat(product.offers || [])[0];
+          const offerPrice = offers && parseFloat(offers.lowPrice || offers.price);
+          const image = product && [].concat(product.image || [])[0];
+          const historyResponse = await fetch('/price-chart/sites/4/products/' + id + '/history?period=P3M');
+          const historyJson = historyResponse.ok ? await historyResponse.json().catch(() => null) : null;
+          const history = ((historyJson && historyJson.data) || []).map(point => [point.x, point.y]);
+          const lastPrice = history.length ? history[history.length - 1][1] : 0;
+          const titleName = document.title.includes(' au meilleur prix') ? document.title.split(' au meilleur prix')[0].trim() : '';
+          const entry = {
+            // Only the tab title holds the full name ("Garmin Instinct 2X Solar Moss au meilleur prix | …"):
+            // the heading and schema.org both cut the variant ("Garmin Instinct 2").
+            id, name: titleName || (product && product.name) || meta('og:title') || document.title,
+            imageUrl: (typeof image === 'string' ? image : (image && image.url)) || meta('og:image'),
+            url: canonical || location.href,
+            // History prices are already in cents, like the ones parse() reads.
+            currentPrice: offerPrice ? Math.round(offerPrice * 100) : Math.round(lastPrice),
+            discountRate: 0, history,
+          };
+          Bridge.onResult(JSON.stringify({ title: document.title, products: [entry] }));
+        })().catch(error => Bridge.onResult(JSON.stringify({ error: String(error), title: document.title })));
+    """.trimIndent()
+
     private fun parse(json: String): List<IdealoProduct> {
         val root = JSONObject(json)
         if (root.has("error")) throw IllegalStateException("idealo: ${root.getString("error")} (page « ${root.optString("title")} »)")

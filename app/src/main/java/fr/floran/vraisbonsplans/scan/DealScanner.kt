@@ -129,6 +129,20 @@ object DealScanner {
         rejectionReason = rejectionReason,
     )
 
+    /** Product shared from the idealo app: always shown, with the verdict in [Deal.detail]. */
+    fun sharedDeal(product: IdealoProduct, todayEpochDay: Long): Deal {
+        val analysis = RealDiscountCalculator.analyze(product.history, product.currentPriceCents, todayEpochDay)
+        val isGenuine = analysis != null && analysis.isNewLow && analysis.realDiscountPercent >= SHARED_GENUINE_FROM_PERCENT
+        val verdict = when {
+            !isGenuine -> fakeReason(analysis)
+            analysis!!.isHistoryConsistent -> "Vrai bon plan : prix le plus bas depuis 3 mois"
+            else -> "Prix le plus bas depuis 3 mois, mais historique douteux"
+        }
+        return idealoDeal(product, analysis, rejectionReason = null).copy(detail = verdict)
+    }
+
+    private const val SHARED_GENUINE_FROM_PERCENT = 5
+
     private fun fakeReason(analysis: DiscountAnalysis?): String = when {
         analysis == null -> "Historique de prix indisponible"
         analysis.realDiscountPercent < 5 ->

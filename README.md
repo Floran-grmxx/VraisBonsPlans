@@ -11,6 +11,9 @@ Les comparateurs affichent souvent des « -70 % » calculés sur un prix gonflé
   &nbsp;
   <img src="docs/screenshots/verification.png" width="300" alt="Vérification en cours">
 </p>
+<p align="center">
+  <img src="docs/screenshots/partage.png" width="400" alt="Produit partagé depuis l'app idealo, avec son verdict">
+</p>
 
 ## Fonctionnalités
 
@@ -19,6 +22,8 @@ Les comparateurs affichent souvent des « -70 % » calculés sur un prix gonflé
 - **Anti fausses promos** : les fausses promos sont écartées ; au-delà de -50 %, une deuxième source doit confirmer, sinon le produit est classé « À vérifier » sans notification.
 - **Prix de revente** : bouton sur chaque bon plan → prix médian des annonces Vinted et Leboncoin comparables (accessoires, appareils HS et autres capacités écartés) et gain estimé ; liens vers Vinted, Leboncoin et les ventes conclues eBay.
 - **Alertes automatiques** : seuil -30 / -50 / -75 / -90 %, vérification de toutes les 15 min à toutes les 12 h, bouton « Ignorer ce produit ».
+- **Partage depuis idealo** : « Partager » sur un produit de l'app idealo → Vrais bons plans affiche son vrai prix habituel, le verdict (vrai bon plan ou fausse promo) et le prix de revente.
+- **Ouverture dans idealo** : toucher un bon plan l'ouvre directement dans l'app idealo si elle est installée.
 - **Recherche et filtres** : prix min/max, sources, tri.
 
 ## Télécharger
