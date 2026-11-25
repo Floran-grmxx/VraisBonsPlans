@@ -76,6 +76,11 @@ import fr.floran.vraisbonsplans.scan.ScanScheduler
 import fr.floran.vraisbonsplans.scan.ScanSettings
 import fr.floran.vraisbonsplans.scan.ScanSettingsStore
 import fr.floran.vraisbonsplans.scan.ScanStore
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.rememberCoroutineScope
+import fr.floran.vraisbonsplans.sources.ResaleSource
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 
@@ -84,6 +89,21 @@ import java.util.Date
 fun MainScreen(isBatteryUnrestricted: Boolean) {
     val context = LocalContext.current
     var settings by remember { mutableStateOf(ScanSettingsStore.read(context)) }
+    val scope = rememberCoroutineScope()
+    val resaleStates = remember { mutableStateMapOf<String, ResaleState>() }
+    fun requestResale(deal: Deal) {
+        resaleStates[deal.key] = ResaleState.Loading
+        scope.launch {
+            resaleStates[deal.key] = try {
+                ResaleState.Done(ResaleSource.estimate(context, deal.name, deal.currentPriceCents))
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                android.util.Log.w("MainScreen", "resale lookup failed for ${deal.key}", error)
+                ResaleState.Failed
+            }
+        }
+    }
     val result by ScanStore.lastResult(context).collectAsState()
     val manualScans by ScanScheduler.isManualScanRunning(context).collectAsState(initial = emptyList())
     val isWorkActive = manualScans.any { it.state == WorkInfo.State.RUNNING || it.state == WorkInfo.State.ENQUEUED }
@@ -211,7 +231,12 @@ fun MainScreen(isBatteryUnrestricted: Boolean) {
             }
         }
         items(deals, key = { it.key }) { deal ->
-            DealCard(deal, onIgnore = { ScanStore.ignore(context, deal.key) })
+            DealCard(
+                deal,
+                resaleState = resaleStates[deal.key],
+                onResaleRequest = { requestResale(deal) },
+                onIgnore = { ScanStore.ignore(context, deal.key) },
+            )
         }
 
         val dealsToVerify = filter.apply(result?.dealsToVerify.orEmpty())
@@ -221,7 +246,12 @@ fun MainScreen(isBatteryUnrestricted: Boolean) {
                 Text("À vérifier", fontWeight = FontWeight.SemiBold)
             }
             items(dealsToVerify, key = { "verify-" + it.key }) { deal ->
-                DealCard(deal, onIgnore = { ScanStore.ignore(context, deal.key) })
+                DealCard(
+                    deal,
+                    resaleState = resaleStates[deal.key],
+                    onResaleRequest = { requestResale(deal) },
+                    onIgnore = { ScanStore.ignore(context, deal.key) },
+                )
             }
         }
 
@@ -470,7 +500,7 @@ private fun ChoiceChips(
 }
 
 @Composable
-private fun DealCard(deal: Deal, onIgnore: () -> Unit) {
+private fun DealCard(deal: Deal, resaleState: ResaleState?, onResaleRequest: () -> Unit, onIgnore: () -> Unit) {
     val context = LocalContext.current
     Card(
         modifier = Modifier.fillMaxWidth().clickable {
@@ -481,59 +511,63 @@ private fun DealCard(deal: Deal, onIgnore: () -> Unit) {
             }
         },
     ) {
-        Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            RemoteImage(deal.imageUrl, Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(deal.name, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                if (deal.detail.isNotEmpty()) {
-                    Text(deal.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        if (deal.currentPriceCents > 0) formatEuros(deal.currentPriceCents) else "Prix inconnu",
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    deal.referencePriceCents?.let {
+        Column(Modifier.padding(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                RemoteImage(deal.imageUrl, Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(deal.name, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    if (deal.detail.isNotEmpty()) {
+                        Text(deal.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            formatEuros(it),
+                            if (deal.currentPriceCents > 0) formatEuros(deal.currentPriceCents) else "Prix inconnu",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        deal.referencePriceCents?.let {
+                            Text(
+                                formatEuros(it),
+                                style = MaterialTheme.typography.bodySmall,
+                                textDecoration = TextDecoration.LineThrough,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    deal.crossCheck?.let {
+                        val isConfirmed = it.contains("✓")
+                        Text(
+                            if (isConfirmed) "✓ Ledenicheur" else it,
                             style = MaterialTheme.typography.bodySmall,
+                            color = if (isConfirmed) AppColors.Green else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    DiscountBadge(deal.realDiscountPercent?.let { "-$it %" } ?: "Erreur")
+                    // The source's own claim only matters when it differs from the real discount.
+                    val sourceDiscount = deal.sourceDiscountPercent
+                    val realDiscount = deal.realDiscountPercent
+                    if (sourceDiscount != null && (realDiscount == null || sourceDiscount - realDiscount >= MEANINGFUL_GAP_PERCENT)) {
+                        Text(
+                            "-$sourceDiscount %",
+                            style = MaterialTheme.typography.labelSmall,
                             textDecoration = TextDecoration.LineThrough,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                }
-                deal.crossCheck?.let {
-                    val isConfirmed = it.contains("✓")
-                    Text(
-                        if (isConfirmed) "✓ Ledenicheur" else it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (isConfirmed) AppColors.Green else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                DiscountBadge(deal.realDiscountPercent?.let { "-$it %" } ?: "Erreur")
-                // The source's own claim only matters when it differs from the real discount.
-                val sourceDiscount = deal.sourceDiscountPercent
-                val realDiscount = deal.realDiscountPercent
-                if (sourceDiscount != null && (realDiscount == null || sourceDiscount - realDiscount >= MEANINGFUL_GAP_PERCENT)) {
-                    Text(
-                        "-$sourceDiscount %",
-                        style = MaterialTheme.typography.labelSmall,
-                        textDecoration = TextDecoration.LineThrough,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                IconButton(onClick = onIgnore, modifier = Modifier.size(32.dp)) {
-                    Icon(
-                        Icons.Filled.Close,
-                        contentDescription = "Ignorer ce produit",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp),
-                    )
+                    IconButton(onClick = onIgnore, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = "Ignorer ce produit",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                 }
             }
+            // Only for priced deals: the gain needs the purchase price.
+            if (deal.currentPriceCents > 0) ResaleSection(resaleState, onResaleRequest)
         }
     }
 }

@@ -7,7 +7,7 @@ Application Android qui repère les **vraies** promos et les erreurs de prix, en
 Les comparateurs affichent souvent des « -70 % » calculés sur un prix gonflé pendant quelques semaines. L'app recalcule la réduction réelle à partir de l'historique des prix et la recoupe avec un deuxième site avant de t'alerter.
 
 <p align="center">
-  <img src="docs/screenshots/resultats.png" width="300" alt="Bon plan confirmé par Ledenicheur">
+  <img src="docs/screenshots/resultats.png" width="300" alt="Bons plans confirmés par Ledenicheur, avec prix de revente">
   &nbsp;
   <img src="docs/screenshots/verification.png" width="300" alt="Vérification en cours">
 </p>
@@ -17,6 +17,7 @@ Les comparateurs affichent souvent des « -70 % » calculés sur un prix gonflé
 - **Sources** : idealo (plus grosses baisses), Dealabs (erreurs de prix de moins de 48 h), Ledenicheur (recoupement).
 - **Réduction réelle** : prix habituel = médiane des 30 derniers jours, pics et creux absurdes retirés ; une promo ne compte que si c'est un nouveau prix plancher.
 - **Anti fausses promos** : les fausses promos sont écartées ; au-delà de -50 %, une deuxième source doit confirmer, sinon le produit est classé « À vérifier » sans notification.
+- **Prix de revente** : bouton sur chaque bon plan → prix médian des annonces Vinted et Leboncoin comparables (accessoires, appareils HS et autres capacités écartés) et gain estimé ; liens vers Vinted, Leboncoin et les ventes conclues eBay.
 - **Alertes automatiques** : seuil -30 / -50 / -75 / -90 %, vérification de toutes les 15 min à toutes les 12 h, bouton « Ignorer ce produit ».
 - **Recherche et filtres** : prix min/max, sources, tri.
 

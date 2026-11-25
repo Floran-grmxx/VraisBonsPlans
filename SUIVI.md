@@ -1,7 +1,7 @@
 # SUIVI — Vrais bons plans (app compagnon idealo)
 
 ## 🧭 Ligne directrice
-_MAJ 2026-11-04_ — ✅ v1.1 publiée (GitHub + installée sur le Redmi) : écran épuré, barre de progression, catégories idealo, 50/100/200 produits, crash au clic corrigé. Prochaine priorité : fonction « Prix de revente » (Vinted / Leboncoin / eBay).
+_MAJ 2026-11-25_ — **v1.2 publiée** (« Prix de revente » : Vinted + Leboncoin lus dans l'app, liens eBay vendus) ; validée sur le Redmi en build release (LEGO Technic ≈ 20 €, +9 €) et rotation OK. Prochaine priorité : retours d'usage sur la revente (précision, blocages Leboncoin).
 
 ## ✅ Fait
 - [x] Projet Gradle (template AlcoLimit : AGP 9.1.1, Kotlin 2.1.20, Compose BOM 2025.01, WorkManager)
@@ -30,11 +30,19 @@ _MAJ 2026-11-04_ — ✅ v1.1 publiée (GitHub + installée sur le Redmi) : écr
 - [x] Liste « Fausses promos » retirée de l'écran (toujours calculée et écartée par le scan, juste plus affichée)
 - [x] Release v1.1 (versionCode 2) publiée sur GitHub et installée
 - [x] Maquette multi-sources (`../idealo_patch/prototype/deal_alert.html`)
+- [x] Maquette « Prix de revente » : `prototype/resale/fetch_resale.py` (récupère les données) + `index.html` (servir avec `python -m http.server 8790` dans ce dossier) — médiane des annonces qui correspondent, accessoires / autres produits écartés, gain estimé, boutons Vinted / Leboncoin / eBay vendus
 
 ## ⏳ Reste à faire
 - [ ] Retour de Floran sur la recherche et les filtres (tap adb impossible : option sécurité USB désactivée)
 - [ ] Dealabs : vérifier une vraie erreur de prix récente (aucune < 48 h lors des tests)
-- [ ] Revente : WebView Vinted / Leboncoin / eBay + filtre accessoires + boutons « Ouvrir dans l'app »
+- [x] Retour de Floran sur la maquette « Prix de revente » : nom de base + capacité, couleur ignorée, objets rares acceptés
+- [x] Revente dans l'app : `pricing/ResaleEstimator.kt` (9 tests) + `sources/ResaleSource.kt` (WebView, repli sans la marque) + `ui/ResaleSection.kt`
+- [x] Revente testée sur émulateur Pixel 7 : Vinted + Leboncoin répondent, pastilles lisibles, « Aucune annonce trouvée » OK
+- [x] Page anti-robot Leboncoin : le script attend 8 s qu'elle passe, sinon « bloqué » → pastille « Leboncoin non lu » (estimation sur Vinted seul)
+- [x] Revente testée sur le Redmi (debug) : LEGO Technic 30 + 30 annonces → ≈ 20 € (+9 €), pas de crash WebView
+- [x] Rotation de l'écran : les résultats de revente ne sont plus perdus (`configChanges` sur `MainActivity`)
+- [x] v1.2 : versionCode 3, APK release signé, capture `resultats.png` refaite, README (fonction « Prix de revente »)
+- [x] Revente vérifiée sur la build release (R8 OK) et rotation sans perte ; release v1.2 publiée sur GitHub (`VraisBonsPlans-1.2.apk` + SHA-256)
 - [ ] Ouvrir la fiche dans l'app idealo officielle (lien `https://www.idealo.fr/prix/{id}/…`)
 - [ ] Recevoir un produit partagé depuis idealo (intent SEND)
 - [ ] « Moins cher ailleurs » (clé SerpApi à fournir)
@@ -70,3 +78,13 @@ _MAJ 2026-11-04_ — ✅ v1.1 publiée (GitHub + installée sur le Redmi) : écr
 - HyperOS masque les `Log.i` d'une app release et l'install adb d'un NOUVEAU paquet demande une confirmation à l'écran (échec « INSTALL_FAILED_USER_RESTRICTED » si verrouillé).
 - **Crash clic produit** : l'API bons plans, appelée depuis un navigateur mobile, renvoie parfois dans `href` un jeton chiffré au lieu d'une URL → `Uri.parse` donne un lien vide, ActivityNotFoundException. `https://www.idealo.fr/prix/{id}.html` redirige vers la fiche.
 - Copier `settings.gradle.kts` depuis AlcoLimit plutôt que via heredoc bash (les `\\` du regex sont mangés).
+- **Revente — sources (2026-11-24)** : Vinted → la page `vinted.fr/catalog?search_text=` contient les annonces dans l'attribut `title` des liens (`nom, Marque: X, État: Y, prix €, prix avec frais €`) ; l'ancienne API `/api/v2/catalog/items` répond **404**. Leboncoin → `leboncoin.fr/recherche?text=` contient `__NEXT_DATA__` (`props.pageProps.searchData.ads`, prix dans `price[0]`). eBay → **403** depuis le PC même avec `curl_cffi` : à faire passer par la WebView dans l'app.
+- **Erreur loggée — prix idealo** : `ValueError: could not convert string to float: '1 916.90'` → idealo sépare les milliers par une espace fine insécable (U+202F). Ne garder que chiffres et virgule avant la conversion.
+- **Revente — accessoires** : une recherche « airpods pro 2 » sur Vinted remonte des coques → filtre par mots (coque, étui, câble, boîte…) + prix < 35 % du prix du bon plan + au moins 60 % des mots du titre en commun.
+- **Revente — recherche (règles validées par Floran)** : nom de base (marque + modèle, coupé au 1er mot de variante : capacité, couleur, DDR, CL, kit, RGB…, références fabricant retirées) **+ capacité** (« 128 Go » ; Go = GB, To = TB). Couleur jamais dans la recherche et jamais un motif d'exclusion. Une annonce d'une **autre capacité** est écartée ; une annonce sans capacité est gardée. Moins de 3 annonces → 2e recherche **sans la marque** (« Asmodée » : 2 → 30 annonces Vinted). Objet rare : estimation affichée même avec 1-2 annonces, marquée « peu d'annonces ».
+- **Erreur loggée — édition par heredoc** : un script Python passé en heredoc bash a écrit `\b` et `\1` comme caractères de contrôle dans une regex (backspace, \x01) → tokens cassés sans erreur visible. Écrire le script d'édition avec l'outil Write dans le scratchpad, puis le lancer ; vérifier avec `grep -cP "[\x00-\x08]"`.
+- **eBay vendus** : captcha « Mesure de sécurité » (`/splashui/captcha`) même dans un vrai Chrome (Playwright) → dans l'app, eBay n'est qu'un lien, jamais lu automatiquement.
+- **Valider un script d'extraction WebView depuis le PC** : Playwright (`channel="chrome"`, user-agent Android) + le même JS ; Vinted et Leboncoin y répondent (Vinted ne charge que ~6 annonces sans défilement).
+- **Leboncoin DataDome dans la WebView** : après quelques recherches, la page de résultats est remplacée par une page de contrôle titrée juste « leboncoin.fr » (sans `__NEXT_DATA__`) ; avant correctif, le script répondait « 0 annonce » au lieu de « bloqué ». Le blocage a disparu après redémarrage de l'émulateur.
+- **Émulateur** : en rendu logiciel (`hw.gpu.mode=software`), « System UI isn't responding » en boucle qui avale les taps → lancer avec `-gpu host` ; `settings put global hide_error_dialogs 1` masque ces dialogues. Le paquet debug s'appelle `fr.floran.vraisbonsplans.debug` (lancer avec `am start -n fr.floran.vraisbonsplans.debug/fr.floran.vraisbonsplans.MainActivity`). PC à ~2,5 Go libres : l'émulateur peut mourir.
+- **Crash natif WebView vu une fois** (émulateur, WebView 156) : SIGTRAP dans le thread `NetworkService` pendant la 2ᵉ recherche (repli sans marque) ; non reproduit sur 4 recherches suivantes → à surveiller sur le Redmi.
