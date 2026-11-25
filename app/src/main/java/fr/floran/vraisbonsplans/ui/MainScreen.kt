@@ -499,17 +499,35 @@ private fun ChoiceChips(
     }
 }
 
+private const val IDEALO_APP_PACKAGE = "de.idealo.android"
+
+/**
+ * Opens idealo pages straight in the official idealo app when it is installed (MIUI otherwise
+ * shows an "open with" chooser even though the app handles /prix/ links), else in the browser.
+ */
+private fun openDeal(context: android.content.Context, url: String) {
+    val uri = Uri.parse(url)
+    val viewIntent = Intent(Intent.ACTION_VIEW, uri)
+    if (uri.host?.endsWith("idealo.fr") == true) {
+        try {
+            context.startActivity(Intent(viewIntent).setPackage(IDEALO_APP_PACKAGE))
+            return
+        } catch (error: android.content.ActivityNotFoundException) {
+            // idealo app not installed: fall through to the browser.
+        }
+    }
+    try {
+        context.startActivity(viewIntent)
+    } catch (error: android.content.ActivityNotFoundException) {
+        android.widget.Toast.makeText(context, "Impossible d'ouvrir ce produit", android.widget.Toast.LENGTH_SHORT).show()
+    }
+}
+
 @Composable
 private fun DealCard(deal: Deal, resaleState: ResaleState?, onResaleRequest: () -> Unit, onIgnore: () -> Unit) {
     val context = LocalContext.current
     Card(
-        modifier = Modifier.fillMaxWidth().clickable {
-            try {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(deal.openableUrl)))
-            } catch (error: android.content.ActivityNotFoundException) {
-                android.widget.Toast.makeText(context, "Impossible d'ouvrir ce produit", android.widget.Toast.LENGTH_SHORT).show()
-            }
-        },
+        modifier = Modifier.fillMaxWidth().clickable { openDeal(context, deal.openableUrl) },
     ) {
         Column(Modifier.padding(12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

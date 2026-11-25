@@ -43,8 +43,8 @@ _MAJ 2026-11-25_ — **v1.2 publiée** (« Prix de revente » : Vinted + Lebonco
 - [x] Rotation de l'écran : les résultats de revente ne sont plus perdus (`configChanges` sur `MainActivity`)
 - [x] v1.2 : versionCode 3, APK release signé, capture `resultats.png` refaite, README (fonction « Prix de revente »)
 - [x] Revente vérifiée sur la build release (R8 OK) et rotation sans perte ; release v1.2 publiée sur GitHub (`VraisBonsPlans-1.2.apk` + SHA-256)
-- [ ] Ouvrir la fiche dans l'app idealo officielle (lien `https://www.idealo.fr/prix/{id}/…`)
-- [ ] Recevoir un produit partagé depuis idealo (intent SEND)
+- [x] Toucher un bon plan idealo ouvre directement l'app idealo officielle (`setPackage("de.idealo.android")`, repli navigateur) — MIUI affichait le sélecteur « Ouvrir avec » alors que l'app gère `/prix/` (2026-11-25, non publié)
+- [ ] Recevoir un produit partagé depuis idealo (intent SEND) — piste : id extrait du lien `/prix/{id}`, page produit lue via `HiddenBrowser` (curl → 403), historique via `/price-chart/sites/4/products/{id}/history`, puis carte « Produit partagé » + revente. Reste à inspecter le DOM de la page produit (nom, prix, image)
 - [ ] « Moins cher ailleurs » (clé SerpApi à fournir)
 
 ## 📋 Notes / gotchas
