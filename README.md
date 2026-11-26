@@ -2,39 +2,39 @@
 
 [![Release](https://img.shields.io/github/v/release/Floran-grmxx/VraisBonsPlans)](https://github.com/Floran-grmxx/VraisBonsPlans/releases/latest)
 
-Application Android qui repère les **vraies** promos et les erreurs de prix, en écartant les fausses réductions.
+Android app that spots **genuine** deals and pricing errors, filtering out fake discounts.
 
-Les comparateurs affichent souvent des « -70 % » calculés sur un prix gonflé pendant quelques semaines. L'app recalcule la réduction réelle à partir de l'historique des prix et la recoupe avec un deuxième site avant de t'alerter.
+Price comparison sites often show "-70%" calculated against a price that was inflated for a few weeks. The app recalculates the real discount from the price history and cross-checks it with a second site before alerting you.
 
 <p align="center">
-  <img src="docs/screenshots/resultats.png" width="300" alt="Bons plans confirmés par Ledenicheur, avec prix de revente">
+  <img src="docs/screenshots/resultats.png" width="300" alt="Deals confirmed by Ledenicheur, with resale price">
   &nbsp;
-  <img src="docs/screenshots/verification.png" width="300" alt="Vérification en cours">
+  <img src="docs/screenshots/verification.png" width="300" alt="Check in progress">
 </p>
 <p align="center">
-  <img src="docs/screenshots/partage.png" width="400" alt="Produit partagé depuis l'app idealo, avec son verdict">
+  <img src="docs/screenshots/partage.png" width="400" alt="Product shared from the idealo app, with its verdict">
 </p>
 
-## Fonctionnalités
+## Features
 
-- **Sources** : idealo (plus grosses baisses), Dealabs (erreurs de prix de moins de 48 h), Ledenicheur (recoupement).
-- **Réduction réelle** : prix habituel = médiane des 30 derniers jours, pics et creux absurdes retirés ; une promo ne compte que si c'est un nouveau prix plancher.
-- **Anti fausses promos** : les fausses promos sont écartées ; au-delà de -50 %, une deuxième source doit confirmer, sinon le produit est classé « À vérifier » sans notification.
-- **Prix de revente** : bouton sur chaque bon plan → prix médian des annonces Vinted et Leboncoin comparables (accessoires, appareils HS et autres capacités écartés) et gain estimé ; liens vers Vinted, Leboncoin et les ventes conclues eBay.
-- **Alertes automatiques** : seuil -30 / -50 / -75 / -90 %, vérification de toutes les 15 min à toutes les 12 h, bouton « Ignorer ce produit ».
-- **Partage depuis idealo** : « Partager » sur un produit de l'app idealo → Vrais bons plans affiche son vrai prix habituel, le verdict (vrai bon plan ou fausse promo) et le prix de revente.
-- **Ouverture dans idealo** : toucher un bon plan l'ouvre directement dans l'app idealo si elle est installée.
-- **Recherche et filtres** : prix min/max, sources, tri.
+- **Sources**: idealo (biggest price drops), Dealabs (pricing errors less than 48 h old), Ledenicheur (cross-checking).
+- **Real discount**: usual price = median of the last 30 days, with absurd spikes and dips removed; a deal only counts if it is a new price floor.
+- **Fake deal filter**: fake discounts are discarded; beyond -50%, a second source must confirm, otherwise the product is marked "To check" with no notification.
+- **Resale price**: button on each deal → median price of comparable Vinted and Leboncoin listings (accessories, broken devices and other capacities excluded) and estimated profit; links to Vinted, Leboncoin and eBay sold listings.
+- **Automatic alerts**: -30 / -50 / -75 / -90% threshold, checks from every 15 min to every 12 h, "Ignore this product" button.
+- **Share from idealo**: "Share" a product in the idealo app → Vrais bons plans shows its real usual price, the verdict (genuine deal or fake discount) and the resale price.
+- **Open in idealo**: tapping a deal opens it directly in the idealo app if installed.
+- **Search and filters**: min/max price, sources, sorting.
 
-## Télécharger
+## Download
 
-📦 [Dernier APK](https://github.com/Floran-grmxx/VraisBonsPlans/releases/latest) (Android 8.0+)
+📦 [Latest APK](https://github.com/Floran-grmxx/VraisBonsPlans/releases/latest) (Android 8.0+)
 
-🔄 **Mises à jour automatiques** via [Obtainium](https://github.com/ImranR98/Obtainium) : ajouter l'URL `https://github.com/Floran-grmxx/VraisBonsPlans` dans l'app — elle installe l'APK et propose chaque nouvelle release.
+🔄 **Automatic updates** via [Obtainium](https://github.com/ImranR98/Obtainium): add the URL `https://github.com/Floran-grmxx/VraisBonsPlans` in the app — it installs the APK and offers each new release.
 
-## Technique
+## Stack
 
-Kotlin, Jetpack Compose, WorkManager. Aucune clé d'API : les pages sont lues via une WebView invisible.
+Kotlin, Jetpack Compose, WorkManager. No API key: pages are read through an invisible WebView.
 
 ```bash
 ./gradlew testDebugUnitTest   # tests unitaires
@@ -43,4 +43,4 @@ Kotlin, Jetpack Compose, WorkManager. Aucune clé d'API : les pages sont lues vi
 
 minSdk 26 · targetSdk 36.
 
-Sur Xiaomi / HyperOS, autoriser le **démarrage automatique** et la batterie **sans restriction**, sinon les vérifications en arrière-plan sont bloquées (l'app guide pour le faire).
+On Xiaomi / HyperOS, allow **autostart** and **unrestricted** battery, otherwise background checks are blocked (the app guides you through it).
